@@ -12,11 +12,11 @@ class Indicators extends StatefulWidget {
     required this.storyLength,
     required this.isCurrentPage,
     required this.isPaging,
-    required this.padding,
+    required this.indicatorStyle,
   }) : super(key: key);
   final int storyLength;
+  final IndicatorStyle indicatorStyle;
   final AnimationController? animationController;
-  final EdgeInsetsGeometry padding;
   final bool isCurrentPage;
   final bool isPaging;
 
@@ -56,7 +56,7 @@ class _IndicatorsState extends State<Indicators> {
       widget.animationController!.forward(from: 0);
     }
     return Padding(
-      padding: widget.padding,
+      padding: widget.indicatorStyle.padding,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,6 +64,7 @@ class _IndicatorsState extends State<Indicators> {
           widget.storyLength,
           (index) => _Indicator(
             index: index,
+            indicatorStyle: widget.indicatorStyle,
             value: (index == currentStoryIndex)
                 ? indicatorAnimation.value
                 : (index > currentStoryIndex)
@@ -87,22 +88,51 @@ class _Indicator extends StatelessWidget {
     Key? key,
     required this.index,
     required this.value,
+    required this.indicatorStyle,
   }) : super(key: key);
   final int index;
   final double value;
+  final IndicatorStyle indicatorStyle;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Padding(
-        padding: EdgeInsets.only(left: (index == 0) ? 0 : 4),
-        child: LinearProgressIndicator(
-          value: value,
-          backgroundColor: Colors.black.withOpacity(0.08),
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          minHeight: 2,
+        padding: EdgeInsets.only(
+            left: (index == 0) ? 0 : indicatorStyle.interSpacing),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(indicatorStyle.borderRadius),
+          child: LinearProgressIndicator(
+            value: value,
+            backgroundColor: indicatorStyle.backgroundColor,
+            valueColor: indicatorStyle.valueColor,
+            minHeight: indicatorStyle.minHeight,
+          ),
         ),
       ),
     );
   }
+}
+
+@immutable
+class IndicatorStyle {
+  final double minHeight;
+  final Color backgroundColor;
+  final Animation<Color?> valueColor;
+  final double interSpacing;
+  final double borderRadius;
+
+  /// padding of [Indicators]
+  final EdgeInsetsGeometry padding;
+
+  IndicatorStyle({
+    this.minHeight = 4,
+    this.interSpacing = 4,
+    this.borderRadius = 8,
+    Color? backgroundColor,
+    this.padding =
+        const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+    Animation<Color?>? valueColor,
+  })  : backgroundColor = backgroundColor ?? Colors.white.withOpacity(0.4),
+        valueColor = valueColor ?? AlwaysStoppedAnimation<Color>(Colors.white);
 }
