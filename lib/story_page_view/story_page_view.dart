@@ -28,18 +28,19 @@ class StoryPageView extends StatefulWidget {
     Key? key,
     required this.itemBuilder,
     required this.storyLength,
-    required this.pageLength,
+    this.pageLength = 1,
     this.gestureItemBuilder,
     this.initialStoryIndex,
     this.initialPage = 0,
     this.onPageLimitReached,
     this.indicatorDuration = const Duration(seconds: 5),
-    this.indicatorPadding =
-        const EdgeInsets.symmetric(vertical: 32, horizontal: 8),
-    this.backgroundColor = Colors.black,
+    this.backgroundColor,
     this.indicatorAnimationController,
     this.onPageChanged,
-  }) : super(key: key);
+    this.displayShadows = true,
+    IndicatorStyle? indicatorStyle,
+  })  : indicatorStyle = indicatorStyle ?? IndicatorStyle(),
+        super(key: key);
 
   /// Function to build story content
   final _StoryItemBuilder itemBuilder;
@@ -52,14 +53,14 @@ class StoryPageView extends StatefulWidget {
   /// decides length of story for each page
   final _StoryConfigFunction storyLength;
 
+  /// decides if shadows should display below indicators
+  final bool displayShadows;
+
   /// length of [StoryPageView]
   final int pageLength;
 
   /// Initial index of story for each page
   final _StoryConfigFunction? initialStoryIndex;
-
-  /// padding of [Indicators]
-  final EdgeInsetsGeometry indicatorPadding;
 
   /// duration of [Indicators]
   final Duration indicatorDuration;
@@ -76,7 +77,10 @@ class StoryPageView extends StatefulWidget {
   final int initialPage;
 
   /// Color under the Stories which is visible when the cube transition is in progress
-  final Color backgroundColor;
+  final Color? backgroundColor;
+
+  /// Color under the Stories which is visible when the cube transition is in progress
+  final IndicatorStyle indicatorStyle;
 
   /// A stream with [IndicatorAnimationCommand] to force pause or continue inticator animation
   /// Useful when you need to show any popup over the story
@@ -108,7 +112,7 @@ class _StoryPageViewState extends State<StoryPageView> {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: widget.backgroundColor,
+      color: widget.backgroundColor ?? Colors.transparent,
       child: PageView.builder(
         controller: pageController,
         itemCount: widget.pageLength,
@@ -145,11 +149,13 @@ class _StoryPageViewState extends State<StoryPageView> {
                   itemBuilder: widget.itemBuilder,
                   gestureItemBuilder: widget.gestureItemBuilder,
                   indicatorDuration: widget.indicatorDuration,
-                  indicatorPadding: widget.indicatorPadding,
                   indicatorAnimationController:
                       widget.indicatorAnimationController,
+                  indicatorStyle: widget.indicatorStyle,
+                  backgroundColor: widget.backgroundColor,
+                  displayShadows: widget.displayShadows,
                 ),
-                if (isPaging && !isLeaving)
+                if (isPaging && !isLeaving && widget.displayShadows)
                   Positioned.fill(
                     child: Opacity(
                       opacity: opacity as double,
@@ -178,8 +184,10 @@ class _StoryPageFrame extends StatefulWidget {
     required this.itemBuilder,
     required this.gestureItemBuilder,
     required this.indicatorDuration,
-    required this.indicatorPadding,
     required this.indicatorAnimationController,
+    required this.indicatorStyle,
+    required this.backgroundColor,
+    required this.displayShadows,
   }) : super(key: key);
   final int storyLength;
   final int initialStoryIndex;
@@ -189,8 +197,10 @@ class _StoryPageFrame extends StatefulWidget {
   final _StoryItemBuilder itemBuilder;
   final _StoryItemBuilder? gestureItemBuilder;
   final Duration indicatorDuration;
-  final EdgeInsetsGeometry indicatorPadding;
+  final IndicatorStyle indicatorStyle;
   final ValueNotifier<IndicatorAnimationCommand>? indicatorAnimationController;
+  final Color? backgroundColor;
+  final bool displayShadows;
 
   static Widget wrapped({
     required int pageIndex,
@@ -204,9 +214,11 @@ class _StoryPageFrame extends StatefulWidget {
     required _StoryItemBuilder itemBuilder,
     _StoryItemBuilder? gestureItemBuilder,
     required Duration indicatorDuration,
-    required EdgeInsetsGeometry indicatorPadding,
     required ValueNotifier<IndicatorAnimationCommand>?
         indicatorAnimationController,
+    required IndicatorStyle indicatorStyle,
+    required Color? backgroundColor,
+    required bool displayShadows,
   }) {
     return MultiProvider(
       providers: [
@@ -243,8 +255,10 @@ class _StoryPageFrame extends StatefulWidget {
         itemBuilder: itemBuilder,
         gestureItemBuilder: gestureItemBuilder,
         indicatorDuration: indicatorDuration,
-        indicatorPadding: indicatorPadding,
         indicatorAnimationController: indicatorAnimationController,
+        indicatorStyle: indicatorStyle,
+        backgroundColor: backgroundColor,
+        displayShadows: displayShadows,
       ),
     );
   }
@@ -305,11 +319,12 @@ class _StoryPageFrameState extends State<_StoryPageFrame>
       fit: StackFit.loose,
       alignment: Alignment.topLeft,
       children: [
-        Positioned.fill(
-          child: ColoredBox(
-            color: Theme.of(context).scaffoldBackgroundColor,
+        if (widget.backgroundColor != null)
+          Positioned.fill(
+            child: ColoredBox(
+              color: widget.backgroundColor!,
+            ),
           ),
-        ),
         Positioned.fill(
           child: widget.itemBuilder(
             context,
@@ -317,24 +332,25 @@ class _StoryPageFrameState extends State<_StoryPageFrame>
             context.watch<StoryStackController>().value,
           ),
         ),
-        Container(
-          height: 50,
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                spreadRadius: 10,
-                blurRadius: 20,
-              ),
-            ],
+        if (widget.displayShadows)
+          Container(
+            height: 50,
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 10,
+                  blurRadius: 20,
+                ),
+              ],
+            ),
           ),
-        ),
         Indicators(
           storyLength: widget.storyLength,
           animationController: animationController,
           isCurrentPage: widget.isCurrentPage,
           isPaging: widget.isPaging,
-          padding: widget.indicatorPadding,
+          indicatorStyle: widget.indicatorStyle,
         ),
         Gestures(
           animationController: animationController,
